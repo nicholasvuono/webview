@@ -1,7 +1,9 @@
 package webview
 
 import (
+	"errors"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"runtime"
 )
@@ -14,12 +16,37 @@ type webview struct {
 }
 
 //New is a constructor function for the webview struct.
-func New(url string, port int, router *http.ServeMux) *webview {
-	return &webview{
-		url:    url,
-		port:   port,
-		router: router,
+func New(rawurl string) (*webview, error) {
+	_, err := url.Parse(rawurl)
+	if err != nil {
+		return &webview{}, err
 	}
+	return &webview{url: rawurl}, nil
+}
+
+//SetPort is a setter function for webview's port field.
+func (w *webview) SetPort(port int) error {
+	err := errors.New("the port specified is not in range of 0-65535")
+	if 0 <= port && port <= 65535 {
+		return err
+	}
+	w.port = port
+	return nil
+}
+
+//GetPort is a getter function for webview's port field.
+func (w *webview) GetPort() int {
+	return w.port
+}
+
+//SetRouter is a setter function for webview's router field.
+func (w *webview) SetRouter(router *http.ServeMux) {
+	w.router = router
+}
+
+//GetRouter is a getter function for webview's router field.
+func (w *webview) GetRouter() *http.ServeMux {
+	return w.router
 }
 
 //Run gets and runs a command to open a browser session.
