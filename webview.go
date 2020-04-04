@@ -2,9 +2,11 @@ package webview
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 	"os/exec"
+	"reflect"
 	"runtime"
 )
 
@@ -26,9 +28,8 @@ func New(rawurl string) (*webview, error) {
 
 //SetPort is a setter function for webview's port field.
 func (w *webview) SetPort(port int) error {
-	err := errors.New("the port specified is not in range of 0-65535")
-	if 0 <= port && port <= 65535 {
-		return err
+	if 0 > port || port > 65535 {
+		return errors.New("the port specified is not in range of 0-65535")
 	}
 	w.port = port
 	return nil
@@ -40,8 +41,12 @@ func (w *webview) GetPort() int {
 }
 
 //SetRouter is a setter function for webview's router field.
-func (w *webview) SetRouter(router *http.ServeMux) {
+func (w *webview) SetRouter(router *http.ServeMux) error {
+	if reflect.TypeOf(router) != reflect.TypeOf(http.NewServeMux()) {
+		return errors.New("the router specified is not of type *ServeMux")
+	}
 	w.router = router
+	return nil
 }
 
 //GetRouter is a getter function for webview's router field.
@@ -50,15 +55,23 @@ func (w *webview) GetRouter() *http.ServeMux {
 }
 
 //Run gets and runs a command to open a browser session.
-func (w *webview) Run() {
+func (w *webview) Run() error {
 	command := getOpenCommand(w.url)
-	command.Run()
+	err := command.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return nil
 }
 
 //RunAndServe opens a browser in a go routine and starts up a server.
-func (w *webview) RunAndServe() {
+func (w *webview) RunAndServe() error {
 	go w.Run()
-	http.ListenAndServe(":"+string(w.port), w.router)
+	err := http.ListenAndServe(":"+string(w.port), w.router)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //getOpenCommand takes in a url and returns a command to open that url in the default browser.
